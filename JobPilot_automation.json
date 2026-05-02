@@ -1,0 +1,539 @@
+{
+  "name": "JobPilot_automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "job-autopilot",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1664,
+        48
+      ],
+      "id": "d0072a89-594e-4999-9fa6-8fb25088d3d9",
+      "name": "Webhook",
+      "webhookId": "2c086fab-fbe3-4937-b63e-5b1dec8abf36"
+    },
+    {
+      "parameters": {
+        "jsCode": "const jinaData = $input.first().json;\nlet jdText = jinaData.data.content || jinaData.data.description || '';\njdText = jdText.replace(/\\s+/g, ' ').trim();\njdText = jdText.substring(0, 2000);\n\n// Smart resume cleaner — handles PDF binary, docx, txt\nlet resume = $('Webhook').first().json.body.resume || '';\n\n// Remove PDF binary garbage\nresume = resume.replace(/%PDF[\\s\\S]*?(?=\\n[A-Z]|\\n\\n)/g, '');\nresume = resume.replace(/<<[\\s\\S]*?>>/g, '');\nresume = resume.replace(/\\b(obj|endobj|stream|endstream|xref|trailer|startxref)\\b/g, '');\nresume = resume.replace(/[^\\x20-\\x7E\\n\\r]/g, ' ');\nresume = resume.replace(/\\s+/g, ' ').trim();\nresume = resume.substring(0, 1500);\n\nconst jobUrl = $('Webhook').first().json.body.job_url;\n\nreturn [{\n  json: {\n    jd_text: jdText,\n    resume: resume,\n    job_url: jobUrl\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -912,
+        64
+      ],
+      "id": "34eac4c7-b21d-4fe5-b227-f6097dc5dd4b",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer API_KEY_HERE
+            },
+            {
+              "name": "Content-Type",
+              "value": "={{ $('Webhook').item.json.headers['content-type'] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "=json",
+        "specifyBody": "=json",
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"max_tokens\": 400,\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": {{ JSON.stringify(\n      \"JD (short):\\n\" + $json.jd_text.substring(0,1000) +\n      \"\\n\\nResume:\\n\" + $json.resume.substring(0,800) +\n      \"\\n\\nWrite 5 tailored resume bullets matching this JD. Be concise.\"\n    ) }}\n  }]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -352,
+        -416
+      ],
+      "id": "671bfb5f-516b-4b4e-bb36-d08c16438e82",
+      "name": "Resume Tailor"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer "API_KEY_HERE"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"max_tokens\": 350,\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": {{ JSON.stringify(\n      \"JD:\\n\" + $json.jd_text.substring(0,1000) +\n      \"\\n\\nResume:\\n\" + $json.resume.substring(0,800) +\n      \"\\n\\nWrite a short 3-paragraph cover letter. Simple, human, genuine.\"\n    ) }}\n  }]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -352,
+        -192
+      ],
+      "id": "a6a5d111-980f-4bd8-a8df-db7caa5b68d3",
+      "name": "Cover Letter"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer "API_KEY_HERE"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-8b-instant\",\n  \"max_tokens\": 500,\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": {{ JSON.stringify(\n      \"JD:\\n\" + $json.jd_text.substring(0,1500) +\n      \"\\n\\nWrite 5 interview questions for this job with simple short answers.\\nFormat exactly like this:\\nQ1: (question)\\nA1: (answer in 2 simple sentences)\\n\\nUse easy everyday language. No jargon.\"\n    ) }}\n  }]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -352,
+        32
+      ],
+      "id": "e506b5c4-d1fa-4fb8-89a0-6b2708b2255f",
+      "name": "Interview QnA"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 5,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        128,
+        -80
+      ],
+      "id": "083a643c-bf72-46be-9faf-8629128f1a2d",
+      "name": "Merge Results"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "34ec312f-8562-8098-9ab7-c81a8c514b96",
+          "mode": "list"
+        },
+        "title": "={{ $input.first().json.choices[0].message.content.substring(0, 125) }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Resume|rich_text",
+              "textContent": "={{ $('Resume Tailor').first().json.choices[0].message.content.substring(0, 1900) }}"
+            },
+            {
+              "key": "Interview QnA|rich_text",
+              "textContent": "={{ $('Interview QnA').first().json.choices[0].message.content.substring(0, 1900) }}"
+            },
+            {
+              "key": "Job URL|url",
+              "urlValue": "={{ $('Code in JavaScript').first().json.job_url }}"
+            },
+            {
+              "key": "Cover Letter|title",
+              "title": "={{ $('Cover Letter').first().json.choices[0].message.content.substring(0, 1900) }}"
+            },
+            {
+              "key": "Date|date",
+              "date": "={{ $today }}"
+            },
+            {
+              "key": "Company Research|rich_text",
+              "textContent": "={{ $('Company Research').item.json.choices[0].message.content }}"
+            },
+            {
+              "key": "Profile Match|rich_text",
+              "textContent": "={{ $('Profile Match').item.json.choices[0].message.content }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        656,
+        352
+      ],
+      "id": "499113cd-7589-4580-9d83-c084f3fc0380",
+      "name": "Create a database page",
+      "credentials": {
+        "notionApi": {
+          "id": "jXMwEYn2N0sxRBXv",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer "API_KEY_HERE"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-8b-instant\",\n  \"max_tokens\": 400,\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": {{ JSON.stringify(\n      \"JD:\\n\" + $json.jd_text.substring(0,1500) +\n      \"\\n\\nFrom this job description tell me in simple easy words:\\n1. Company name & what they do (2 lines)\\n2. Work culture & values (2 lines)\\n3. Why someone would love working here (2 lines)\\n4. 2 smart questions to ask in the interview\\nWrite like you're explaining to a friend. Short and clear.\"\n    ) }}\n  }]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -336,
+        272
+      ],
+      "id": "fd267dc0-5b6d-412f-b991-2747b2ecf853",
+      "name": "Company Research"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer "API_KEY_HERE"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-8b-instant\",\n  \"max_tokens\": 400,\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": {{ JSON.stringify(\n      \"JD:\\n\" + $json.jd_text.substring(0,1000) +\n      \"\\n\\nResume:\\n\" + $json.resume.substring(0,800) +\n      \"\\n\\nCompare this resume with the job. Give results in simple words:\\n\\nOverall Match: XX%\\n\\nSkills Match: XX%\\nYou have: (list matched skills simply)\\nYou need: (list missing skills simply)\\n\\nExperience Match: XX%\\nWhy: (1 simple sentence)\\n\\nShould you apply? (Yes/Maybe/No + 1 reason in simple words)\"\n    ) }}\n  }]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -336,
+        480
+      ],
+      "id": "4613e9f7-2495-4303-a936-f4505789590b",
+      "name": "Profile Match"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Safely get content from each node\nfunction getContent(nodeName) {\n  try {\n    return $('nodeName').first().json.choices[0].message.content || '';\n  } catch(e) { return 'Not available'; }\n}\n\nconst resume = $('Resume Tailor').first().json.choices[0].message.content || '';\nconst coverLetter = $('Cover Letter').first().json.choices[0].message.content || '';\nconst interviewQnA = $('Interview QnA').first().json.choices[0].message.content || '';\nconst companyResearch = $('Company Research').first().json.choices[0].message.content || '';\nconst profileMatch = $('Profile Match').first().json.choices[0].message.content || '';\nconst jobUrl = $('Code in JavaScript').first().json.job_url || '';\n\nconst html = `<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\"/>\n<style>\n  body{font-family:Arial,sans-serif;margin:40px;color:#1a1a1a;font-size:14px}\n  h1{color:#2563eb;border-bottom:3px solid #2563eb;padding-bottom:10px;font-size:22px}\n  h2{color:#1e40af;background:#eff6ff;padding:10px;border-radius:6px;margin-top:28px;font-size:16px}\n  p{line-height:1.8;white-space:pre-wrap;margin-top:10px}\n  .section{margin-bottom:24px;border:1px solid #e2e8f0;border-radius:8px;padding:18px}\n  .header{text-align:center;margin-bottom:32px}\n  .meta{color:#6b7280;font-size:12px;margin-top:4px}\n</style>\n</head>\n<body>\n<div class=\"header\">\n  <h1>Job Application Package</h1>\n  <p class=\"meta\">Job: ${jobUrl}</p>\n  <p class=\"meta\">Generated: ${new Date().toLocaleDateString('en-IN',{year:'numeric',month:'long',day:'numeric'})}</p>\n</div>\n\n<div class=\"section\">\n  <h2>📊 Profile Match Score</h2>\n  <p>${profileMatch}</p>\n</div>\n\n<div class=\"section\">\n  <h2>🏢 Company Research</h2>\n  <p>${companyResearch}</p>\n</div>\n\n<div class=\"section\">\n  <h2>📄 Tailored Resume Bullets</h2>\n  <p>${resume}</p>\n</div>\n\n<div class=\"section\">\n  <h2>✉️ Cover Letter</h2>\n  <p>${coverLetter}</p>\n</div>\n\n<div class=\"section\">\n  <h2>🎯 Interview Q&A Prep</h2>\n  <p>${interviewQnA}</p>\n</div>\n</body>\n</html>`;\n\nreturn [{ json: { html_content: html } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        -192
+      ],
+      "id": "579a920b-3760-4063-bd73-3ad81ab9ea2c",
+      "name": "Built HTML"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.pdfshift.io/v3/convert/pdf",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"source\": {{ JSON.stringify($json.html_content) }},\n  \"landscape\": false,\n  \"use_print\": false\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        752,
+        -192
+      ],
+      "id": "fba4ad49-c3ab-4307-be33-514a5936e242",
+      "name": "Generate PDF",
+      "alwaysOutputData": false,
+      "notesInFlow": false,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "pa9EIcD8XJYEPv0c",
+          "name": "Unnamed credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook').item.json.body.email }}",
+        "subject": "=Job Application Ready: {{ $('Company Research').first().json.choices[0].message.content.substring(0,30) }} | Match Score Inside",
+        "message": "=<h2>Your Job Application Package is Ready! 🎉</h2>\n\n<p>Hi Abhishek,</p>\n\n<p>Your automated job application package has been generated and saved to Notion.</p>\n\n<h3>📦 What's inside your PDF:</h3>\n<ul>\n  <li>📊 <b>Profile Match Score</b> — skills %, experience % breakdown</li>\n  <li>🏢 <b>Company Research</b> — culture, values, recent news</li>\n  <li>📄 <b>Tailored Resume</b> — bullet points matched to JD</li>\n  <li>✉️ <b>Cover Letter</b> — personalized for this role</li>\n  <li>🎯 <b>Interview Q&A</b> — 5 questions with strong answers</li>\n</ul>\n\n<p><b>Job URL:</b> {{ $('Code in JavaScript').first().json.job_url }}</p>\n\n<p>Good luck with your application! 💪</p>\n<p><i>— Job Autopilot by Abhishek</i></p>",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1024,
+        -192
+      ],
+      "id": "70764407-9bd2-423c-aec4-4b9cd461798a",
+      "name": "Send a email",
+      "webhookId": "c67c5f9c-5d79-41d0-9cb2-002fac67eca8",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "yBSKPsOGGnfBvkm8",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://r.jina.ai/{{ $json.body.job_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "={{ $json.headers['content-type'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -1264,
+        80
+      ],
+      "id": "06502cfe-a9cd-42f9-9112-fad7258e2adb",
+      "name": "Job Scraper"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Job Scraper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Resume Tailor",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Interview QnA",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Cover Letter",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Company Research",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Profile Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cover Letter": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Interview QnA": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Resume Tailor": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Results": {
+      "main": [
+        [
+          {
+            "node": "Create a database page",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Built HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Company Research": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Profile Match": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Built HTML": {
+      "main": [
+        [
+          {
+            "node": "Generate PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate PDF": {
+      "main": [
+        [
+          {
+            "node": "Send a email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Job Scraper": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "148c91e7-1967-403a-9899-c284ddd30358",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1e5a93cd8045091f6abc46b77540cfa1eb783a4f7103de4edff90ab303045bbc"
+  },
+  "id": "EOtUZbNzPVsp1lar",
+  "tags": [
+    {
+      "updatedAt": "2026-04-28T20:43:12.447Z",
+      "createdAt": "2026-04-28T20:43:12.447Z",
+      "id": "M2LJRUC7aqr0Z908",
+      "name": "jobpilot"
+    }
+  ]
+}
