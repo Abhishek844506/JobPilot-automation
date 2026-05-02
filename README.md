@@ -35,18 +35,31 @@ Everything gets saved to **Notion** and emailed as a **PDF**
 User submits job URL + resume on web form
 
 ↓
+
 Webhook triggers n8n workflow
 
 ↓
+
 Jina.ai scrapes job description
+
 ↓
+
 5 AI tasks run in parallel:
+
 ├── Resume Tailor    (OpenAI)
+
 ├── Cover Letter     (OpenAI)
+
 ├── Interview QnA    (Groq)
+
 ├── Company Research (Groq)
+
 └── Profile Match    (Groq)
+
 ↓
+
 Results merge → save to Notion
+
 ↓
+
 PDF generated → sent to Gmail
