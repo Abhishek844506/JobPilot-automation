@@ -76,6 +76,11 @@ PDF generated → sent to Gmail
 
 ### PDF Output
 <img width="596" height="437" alt="{2A6EE766-8A57-4B01-9C1D-FCC07AB7621B}" src="https://github.com/user-attachments/assets/5884d3e2-a3cc-40f3-b216-47b47d333830" />
+<img width="303" height="389" alt="{DC20644C-3C2D-43C5-8C01-2F0AD5558A1F}" src="https://github.com/user-attachments/assets/deaddef9-9667-47a7-8ac6-0dc7fb5ac4d0" />
+<img width="303" height="330" alt="{436B1E2F-5D13-4FD5-A635-EBD2366DE566}" src="https://github.com/user-attachments/assets/9ef4717c-bedc-4c66-bfef-2b936e523939" />
+<img width="299" height="390" alt="{8CF5E811-8C25-495E-A64A-0B441E691C92}" src="https://github.com/user-attachments/assets/84d1ac78-50c6-42ad-b743-be313b4fb987" />
+
+
 
 
 ## 👨‍💻 Built By
