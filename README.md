@@ -63,3 +63,21 @@ Results merge → save to Notion
 ↓
 
 PDF generated → sent to Gmail
+
+## 📸 Screenshots
+
+### n8n Workflow
+<img width="1920" height="1080" alt="jobpilot_workflow_n8n" src="https://github.com/user-attachments/assets/adba70e9-51d3-4a0e-a7d0-11b2c9beb87b" />
+
+
+### Notion Database
+<img width="1920" height="1080" alt="notion_database_screenshot" src="https://github.com/user-attachments/assets/cca277be-2a78-49b5-bdb0-97474956ae73" />
+
+
+### PDF Output
+<img width="596" height="437" alt="{2A6EE766-8A57-4B01-9C1D-FCC07AB7621B}" src="https://github.com/user-attachments/assets/5884d3e2-a3cc-40f3-b216-47b47d333830" />
+
+
+## 👨‍💻 Built By
+
+**Abhishek Kumar Nirankari**  
