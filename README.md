@@ -33,8 +33,10 @@ Everything gets saved to **Notion** and emailed as a **PDF**
 ## 🔄 How It Works
 
 User submits job URL + resume on web form
+
 ↓
 Webhook triggers n8n workflow
+
 ↓
 Jina.ai scrapes job description
 ↓
